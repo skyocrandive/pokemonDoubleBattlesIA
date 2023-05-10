@@ -1,0 +1,26 @@
+order è composto da un order con o un oggetto mossa con la mossa che fa il pokemon o un oggetto Pokemon con il pokemon da far entrare
+ha un booleano se si vuole dmaxare
+il move_target è un int
+
+esempio composizione order:
+create_order(
+            order, mega=false, z_move=false, dynamax=false,  move_target=move_target
+            )
+
+DoubleBattle._available_moves: List[List[Move]] = [[], []]
+DoubleBattle._available_switches: List[List[Pokemon]] = [[], []]
+in altre parole si ottengono le mosse e i possibili switch di entrambi i tuoi pokemon
+
+battle.get_possible_showdown_targets(move, mon) da lista di interi che indica i possibili target di una mossa:
+- gli alleati sono identificati con -1 e -2
+- gli avversari con 1 e 2
+- nel caso in cui la mossa non necessita di scegliere il bersaglio ha come target solo 0
+
+le mosse che non necessitano di scegliere il bersaglio sono mosse che:
+- colpiscono tutti (e.g. earthquake)
+- colpiscono tutti gli avversari (e.g. heat wave)
+- influisce solo su chi la usa (e.g. protect, dragon dance)
+- scelgono random il bersaglio (e.g. outrage)
+
+
+il player DoubleRandomPlayer ricodifica la funzione choose_random_doubles_move(battle) di Player dove crea una lista di possibili ordini, la rende effettivamente un List e poi ne estrae una scegliendo un indice a caso tramite random
