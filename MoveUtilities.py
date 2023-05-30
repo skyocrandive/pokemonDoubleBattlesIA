@@ -90,7 +90,7 @@ def is_move_immune(score, move: Move, user: Pokemon, target: Pokemon):
             if target.ability and target.ability.lower() in _abilityElectricImmune:
                 return True
 
-    if move.base_power > 0 and type_mod <= 1 and target.ability == "wonder guard":
+    if move.base_power > 0 and type_mod <= 1 and target.ability and target.ability == "wonder guard":
         return True
 
     if move.id.lower() == Move.retrieve_id("spore"):
@@ -143,7 +143,8 @@ def speed_calc(battler: Pokemon):
     return speed * multiplier * stage_mul[stage] / stage_div[stage]
 
 
-def pb_rough_stat(battler: Pokemon, stat: Stat):
+# TODO: change base_stat with stat calculated with base_stat, 31 IV, 0 EV
+def rough_stat(battler: Pokemon, stat: Stat):
     if stat == Stat.SPEED:
         return speed_calc(battler)
 
@@ -153,13 +154,13 @@ def pb_rough_stat(battler: Pokemon, stat: Stat):
     value = battler.stats[stat.value]
     if value is None:
         value = battler.base_stats[stat.value]
-    return (value * stage_mul[stage] / stage_div[stage]).floor
+    return value * stage_mul[stage] / stage_div[stage]
 
 
 # =============================================================================
 # Get a better move's base damage value
 # =============================================================================
-def pb_move_base_damage(move: Move, user: Pokemon, target: Pokemon):
+def move_base_damage(move: Move, user: Pokemon, target: Pokemon):
     base_dmg = move.base_power
     if move.target == "scripted":
         base_dmg = 60
@@ -167,9 +168,9 @@ def pb_move_base_damage(move: Move, user: Pokemon, target: Pokemon):
         if user.item is None:
             base_dmg *= 2
     if move.id == Move.retrieve_id("gyro ball"):
-        target_speed = pb_rough_stat(target, Stat.SPEED)
-        user_speed = pb_rough_stat(user, Stat.SPEED)
-        base_dmg = max([min([(25 * target_speed / user_speed).floor, 150]), 1])
+        target_speed = rough_stat(target, Stat.SPEED)
+        user_speed = rough_stat(user, Stat.SPEED)
+        base_dmg = max([min([(25 * target_speed / user_speed), 150]), 1])
 
     # multi-hit move
     min_hits, max_hits = move.n_hit
@@ -195,19 +196,19 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
         return 0
 
     # ------- Calculate user's attack stat -------------
-    atk = pb_rough_stat(user, Stat.ATTACK)
+    atk = rough_stat(user, Stat.ATTACK)
     if move.id == Move.retrieve_id("foul play"):  # Foul Play
-        atk = pb_rough_stat(target, Stat.ATTACK)
+        atk = rough_stat(target, Stat.ATTACK)
     elif move.id == Move.retrieve_id("body press"):  # Body Press
-        atk = pb_rough_stat(user, Stat.DEFENSE)
+        atk = rough_stat(user, Stat.DEFENSE)
     # if special move:
     elif move.category == MoveCategory.SPECIAL:
-        atk = pb_rough_stat(user, Stat.SPECIAL_ATTACK)
+        atk = rough_stat(user, Stat.SPECIAL_ATTACK)
 
     # ----- Calculate target's defense stat ---------
-    defense = pb_rough_stat(target, Stat.DEFENSE)
+    defense = rough_stat(target, Stat.DEFENSE)
     if move.category == MoveCategory.SPECIAL and not move.id == Move.retrieve_id("psyshock"):
-        defense = pb_rough_stat(target, Stat.SPECIAL_DEFENSE)
+        defense = rough_stat(target, Stat.SPECIAL_DEFENSE)
 
     # ----- Calculate all multiplier effects -------
     multipliers = {
@@ -222,26 +223,26 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
         mold_breaker = True
 
     # Item effects that alter damage
-    if user.item.lower() == "life orb":
+    if user.item and user.item.lower() == "life orb":
         multipliers["attack_multiplier"] *= 1.3
-    elif user.item.lower() == "expert belt" and type_advantage >= 2:
+    elif user.item and user.item.lower() == "expert belt" and type_advantage >= 2:
         multipliers["base_damage_multiplier"] *= 1.2
 
     if move.category == MoveCategory.SPECIAL:
-        if user.item.lower() == "choice specs":
+        if user.item and user.item.lower() == "choice specs":
             multipliers["attack_multiplier"] *= 1.5
-        if target.item.lower() == "assault vest":
+        if target.item and target.item.lower() == "assault vest":
             multipliers["defense_multiplier"] *= 1.5
 
     elif move.category == MoveCategory.PHYSICAL:
-        if user.item.lower() == "choice band":
+        if user.item and user.item.lower() == "choice band":
             multipliers["attack_multiplier"] *= 1.5
         if user.status is not None:
             if user.ability.lower() == "guts":
                 multipliers["attack_multiplier"] *= 1.5
             if move.id == move.retrieve_id("facade"):
                 multipliers["base_damage_multiplier"] *= 2
-        if target.ability.lower() == "multiscale" and target.current_hp_fraction == 1 and not mold_breaker:
+        if target.ability and target.ability.lower() == "multiscale" and target.current_hp_fraction == 1 and not mold_breaker:
             multipliers["defense_multiplier"] *= 2
 
     # Me First
@@ -329,15 +330,15 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
             #  multipliers["final_damage_multiplier"] /= 2
 
     # ---- Main damage calculation --------
-    base_dmg = max([(base_dmg * multipliers["base_damage_multiplier"]).round, 1])
-    atk = max([(atk * multipliers["attack_multiplier"]).round, 1])
-    defense = max([(defense * multipliers["defense_multiplier"]).round, 1])
-    damage = ((((2.0 * user.level / 5) + 2) * base_dmg * atk / defense).floor / 50).floor + 2
-    damage = max([(damage * multipliers["final_damage_multiplier"]).round, 1])
+    base_dmg = max([(base_dmg * multipliers["base_damage_multiplier"]), 1])
+    atk = max([(atk * multipliers["attack_multiplier"]), 1])
+    defense = max([(defense * multipliers["defense_multiplier"]), 1])
+    damage = ((((2.0 * user.level / 5) + 2) * base_dmg * atk / defense) / 50) + 2
+    damage = max([(damage * multipliers["final_damage_multiplier"]), 1])
     # "AI-specific calculations below"
     # Increased critical hit rates
 
-    return damage.floor
+    return damage
 
 
 # ----- fine rough_damage -------------------
@@ -345,7 +346,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
 # =============================================================================
 # Accuracy calculation
 # =============================================================================
-def rough_accuracy(move: Move, user: Pokemon, target: Pokemon = 100):
+def rough_accuracy(move: Move, user: Pokemon, target: Pokemon):
     # "Always hit" effects and "always hit" accuracy
     if target.effects[Effect.MINIMIZE] and move.id == move.retrieve_id("heavy slam"):
         return 125
@@ -379,8 +380,8 @@ def rough_accuracy(move: Move, user: Pokemon, target: Pokemon = 100):
     stage_div = [9, 8, 7, 6, 5, 4, 3, 3, 3, 3, 3, 3, 3]
     accuracy = 100.0 * stage_mul[acc_stage] / stage_div[acc_stage]
     evasion = 100.0 * stage_mul[eva_stage] / stage_div[eva_stage]
-    accuracy = (accuracy * modifiers["accuracy_multiplier"]).round
-    evasion = (evasion * modifiers["evasion_multiplier"]).round
+    accuracy = (accuracy * modifiers["accuracy_multiplier"])
+    evasion = (evasion * modifiers["evasion_multiplier"])
     if evasion < 1:
         evasion = 1
     return modifiers["base_accuracy"] * accuracy / evasion
@@ -404,3 +405,68 @@ def rough_accuracy(move: Move, user: Pokemon, target: Pokemon = 100):
       modifiers["accuracy_multiplier"] = 1
 
 '''
+
+
+def get_max_damage_move(battle: DoubleBattle, my_pokemon: Pokemon, opponents: List[Pokemon], moves: List[Move]) -> \
+        (Move, int, int):
+    """
+    returns the move that deals the most damage across the opponent's active Pokémon
+    the value returned is a tuple (move, target, damage) with
+    move : the most damaging move
+    target : integer specifying the target of the move (useful to create BattleOrder)
+    damage : the sum of the predicted damage dealt with one single move
+
+    """
+    maxmove = None
+    maxtarget = 0
+    maxdamage = 0
+    for move in moves:
+        # print(move.__str__())
+
+        move_targets = battle.get_possible_showdown_targets(move, my_pokemon)
+        '''
+        base_damage1 = move_base_damage(move, my_pokemon, opponents[0])
+        damage1 = rough_damage(move, my_pokemon, opponents[0], base_damage1, battle)
+        base_damage2 = move_base_damage(move, my_pokemon, opponents[1])
+        damage2 = rough_damage(move, my_pokemon, opponents[1], base_damage2, battle)
+        '''
+        damage1 = calculate_percentage_damage(move, my_pokemon, opponents[0], battle)
+        damage2 = calculate_percentage_damage(move, my_pokemon, opponents[1], battle)
+        if len(move_targets) == 1:  # status / spread move (moveTargets = [0])
+            damage = damage1 + damage2
+            target = move_targets[0]
+        else:  # can select target
+            if damage1 > damage2:
+                damage = damage1
+                target = 1
+            else:
+                damage = damage2
+                target = 2
+        if damage > maxdamage:
+            maxdamage = damage
+            maxmove = move
+            maxtarget = target
+    return maxmove, maxtarget, maxdamage
+
+def rough_max_hp(battler : Pokemon):
+    base = battler.base_stats[Stat.HP.value]
+    level = battler.level
+    iv = 31
+    ev = 0
+    hp = math.floor(((2*base+iv+math.floor(ev/4))*level)/100) + level + 10
+    return hp
+def rough_percentage_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: DoubleBattle):
+    damage = rough_damage(move, user, target, base_dmg, battle)
+    hp = rough_max_hp(target)
+    #print("move", move, "target", target, "damage", damage, "target hp", hp)
+    if damage <= 0:
+        return 0
+    return (damage/hp)*100
+
+def calculate_percentage_damage(move: Move, user: Pokemon, target: Pokemon, battle: DoubleBattle):
+    base_damage = move_base_damage(move, user, target)
+    return rough_percentage_damage(move, user, target, base_damage, battle)
+
+def calculate_damage(move: Move, user: Pokemon, target: Pokemon, battle: DoubleBattle):
+    base_damage = move_base_damage(move, user, target)
+    return rough_damage(move, user, target, base_damage, battle)

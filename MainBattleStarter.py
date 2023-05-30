@@ -4,14 +4,15 @@ import sys
 
 from poke_env import PlayerConfiguration, LocalhostServerConfiguration
 
+from DoublesRandomPlayer import DoubleRandomPlayer
 from DoublesMaxDamagePlayer import DoublesMaxDamagePlayer
+from DoublesTrueMaxDamagePlayer import DoublesTrueMaxDamagePlayer
 from Teams import RandomTeamFromPool
 
 sys.path.append("..")
 
 import BattleUtilities
 from poke_env.player.random_player import RandomPlayer
-from DoublesRandomPlayer import DoubleRandomPlayer
 #from MaxDamagePlayer import MaxDamagePlayer
 from poke_env.player.player import Player
 from poke_env.player.baselines import SimpleHeuristicsPlayer
@@ -35,9 +36,17 @@ async def main():
         battle_format="gen8vgc2020"
     )
 
+    true_maxdamage_player = DoublesTrueMaxDamagePlayer(
+        player_configuration=PlayerConfiguration("elMaxoDamagioMax", None),
+        server_configuration=LocalhostServerConfiguration,
+        team=RandomTeamFromPool(),
+        battle_format="gen8vgc2020"
+    )
+
     start = time.time()
     #await random_player.send_challenges("skyocrandive", n_challenges=1)
-    await maxdamage_player.send_challenges("skyocrandive", n_challenges=1)
+    #await maxdamage_player.send_challenges("skyocrandive", n_challenges=1)
+    await true_maxdamage_player.send_challenges("skyocrandive", n_challenges=1)
     #await smart_damage_player.battle_against(heuristic_player, n_battles=500)
 
     print(

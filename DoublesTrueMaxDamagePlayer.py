@@ -1,18 +1,16 @@
 """This module defines a random players baseline
 """
-import random
-from pprint import pprint
 
 import numpy as np
 from poke_env.environment.pokemon import Pokemon
-from poke_env.environment.move import Move
 from poke_env.player.player import Player
 from poke_env.player.battle_order import BattleOrder, DoubleBattleOrder, DefaultBattleOrder
 
 import BattleUtilities
+import MoveUtilities
 
 
-class DoublesMaxDamagePlayer(Player):
+class DoublesTrueMaxDamagePlayer(Player):
     def choose_move(self, battle) -> BattleOrder:
         # return self.choose_random_doubles_move(battle)
         active_orders = [[], []]
@@ -42,8 +40,8 @@ class DoublesMaxDamagePlayer(Player):
                     active_orders[idx] = BattleOrder(best_switch)
                     print(mon.__str__())
                 else:
-                    (move, target, damage) = BattleUtilities.get_max_damage_move(battle, mon, opponents, moves)
-                    print("move ", move, " target ", target, "predicted damage", damage)
+                    (move, target, damage) = MoveUtilities.get_max_damage_move(battle, mon, opponents, moves)
+                    print("move ", move, " target ", target,"predicted damage",damage)
                     active_orders[idx] = BattleOrder(move, move_target=target)
 
         # end for action
@@ -54,7 +52,9 @@ class DoublesMaxDamagePlayer(Player):
             return DefaultBattleOrder()
 
 
-#------------------------------------------------------
+#--------------------------------------------------------------------------------------------------
+
+
     def choose_best_switch(self, battle, index: int):
         if not battle.available_switches:
             return None
@@ -75,7 +75,7 @@ class DoublesMaxDamagePlayer(Player):
         score = 0
         if opponent_pokemon is None:
             return score
-        defensive_multiplier = BattleUtilities.get_defensive_type_multiplier(my_pokemon, opponent_pokemon)
+        defensive_multiplier = MoveUtilities.pokemon_type_advantage(my_pokemon, opponent_pokemon)
         # A multiplier greater than 1 means we are at a type disadvantage. If there is a better type match, switch
         if defensive_multiplier == 4:
             score += 1

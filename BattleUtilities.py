@@ -26,8 +26,8 @@ def calculate_damage(move, attacker, defender, pessimistic, is_bot_turn):
     damage = damage * ratio
     level_multiplier = ((2 * attacker.level) / 5) + 2
     damage = damage * level_multiplier
-    # Finish calculating the base damage of the attack
-    damage = (damage / 50) + 2;
+    # Finish calculating the attack's  base damage
+    damage = (damage / 50) + 2
     # Damage is multiplied by a random value between 0.85 and 1. Pessimistic flag gets a lower bound
     if pessimistic:
         damage = damage * 0.85
@@ -40,8 +40,8 @@ def calculate_damage(move, attacker, defender, pessimistic, is_bot_turn):
 
 
 # The following two functions work very similarly, just focusing on different stats.
-# They get the ratio between my Pokemon's attack and my opponent's estimated defense
-# In random battles each Pokemon has 85 EVs in each stat and a neutral nature
+# They get the ratio between my Pokémon's attack and my opponent's estimated defense
+# In random battles each Pokémon has 85 EVs in each stat and a neutral nature
 # As far as I can tell IVs are random - assume average IVs (15)
 def calculate_physical_ratio(attacker, defender, is_bot_turn):
     if is_bot_turn:
@@ -79,7 +79,7 @@ def opponent_can_outspeed(my_pokemon, opponent_pokemon):
     my_speed = my_pokemon.stats["spe"]
     # Assume the worst - max IVs for opponent speed
     opponent_max_speed = 2 * opponent_pokemon.base_stats["spe"]
-    # Add 52 - thats 31 for IVs and 21 for EVs (which are distributed evenly)
+    # Add 52 - that's 31 for IVs and 21 for EVs (which are distributed evenly)
     opponent_max_speed = opponent_max_speed + 52
     opponent_max_speed = ((opponent_max_speed * opponent_pokemon.level) / 100) + 5
     if opponent_max_speed > my_speed:
@@ -116,7 +116,7 @@ def get_defensive_type_multiplier(my_pokemon, opponent_pokemon):
 
 def get_max_damage_move(battle: DoubleBattle, my_pokemon: Pokemon, opponents: List[Pokemon], moves: List[Move]) -> (Move, int, int):
     '''
-    returns the move that deals the most damage across the opponent's active pokemon
+    returns the move that deals the most damage across the opponent's active pokémon
     the value returned is a tuple (move, target, damage) with
     move : the most damaging move
     target : integer specifing the target of the move (useful to create BattleOrder)
