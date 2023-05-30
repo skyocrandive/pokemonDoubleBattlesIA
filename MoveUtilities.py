@@ -140,15 +140,15 @@ def speed_calc(battler: Pokemon):
     if battler.item and battler.item.lower() == "choice scarf":
         multiplier *= 1.5
 
-    return speed * multiplier * stageMul[stage] / stageDiv[stage]
+    return speed * multiplier * stage_mul[stage] / stage_div[stage]
 
 
 def pb_rough_stat(battler: Pokemon, stat: Stat):
     if stat == Stat.SPEED:
         return speed_calc(battler)
 
-    stageMul = [2, 2, 2, 2, 2, 2, 2, 3, 4, 5, 6, 7, 8]
-    stageDiv = [8, 7, 6, 5, 4, 3, 2, 2, 2, 2, 2, 2, 2]
+    stage_mul = [2, 2, 2, 2, 2, 2, 2, 3, 4, 5, 6, 7, 8]
+    stage_div = [8, 7, 6, 5, 4, 3, 2, 2, 2, 2, 2, 2, 2]
     stage = battler.boosts[stat.value] + 6
     value = battler.stats[stat.value]
     if value is None:
@@ -178,7 +178,7 @@ def pb_move_base_damage(move: Move, user: Pokemon, target: Pokemon):
     else:
         base_dmg *= move.expected_hits
 
-    return baseDmg
+    return base_dmg
 
 
 # =============================================================================
@@ -217,7 +217,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
         "final_damage_multiplier": 1.0
     }
     # Ability effects that alter damage
-    moldBreaker = False
+    mold_breaker = False
     if user.ability.lower() == "mold breaker":
         mold_breaker = True
 
@@ -370,7 +370,8 @@ def rough_accuracy(move: Move, user: Pokemon, target: Pokemon = 100):
     }
     # pbCalcAccuracyModifiers(user, target, modifiers, move, type )
     # Check if move can't miss
-    if modifiers["base_accuracy"] == 0: return 125
+    if modifiers["base_accuracy"] == 0:
+        return 125
     # Calculation
     acc_stage = min([max([modifiers["accuracy_stage"], -6]), 6]) + 6
     eva_stage = min([max([modifiers["evasion_stage"], -6]), 6]) + 6
