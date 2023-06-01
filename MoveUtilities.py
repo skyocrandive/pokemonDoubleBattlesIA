@@ -1,4 +1,6 @@
 import enum
+import math
+from typing import List
 
 from poke_env.environment import Move, Pokemon, DoubleBattle, Effect, Status, Weather, SideCondition
 from poke_env.environment.move_category import MoveCategory
@@ -45,6 +47,12 @@ class Stat(enum.Enum):
 # if Move its multiple targets
 # =============================================================================
 def multiple_targets(move: Move, battle: DoubleBattle):
+    """
+    returns true if the move hits multiple targets
+        :param move:Move
+        :param battle: DoubleBattle
+        :return
+    """
     target_data = move.target
     if target_data not in _multiTargets:
         return False
@@ -63,9 +71,13 @@ def multiple_targets(move: Move, battle: DoubleBattle):
 # =============================================================================
 
 
-# For switching. Determines the effectiveness of a potential switch-in against
-# an opposing battler.
 def pokemon_type_advantage(user: Pokemon, target: Pokemon):
+    """
+    determines the effectiveness of a potential switch-in against an opposing battler.
+        :param user:Pokémon,
+        :param target:Pokémon,
+        :return
+    """
     mod1 = target.damage_multiplier(user.type_1)
     mod2 = 1
     type2 = user.type_2
@@ -78,6 +90,14 @@ def pokemon_type_advantage(user: Pokemon, target: Pokemon):
 # Immunity to a move because of the target's ability, item or other effects
 # =============================================================================
 def is_move_immune(score, move: Move, user: Pokemon, target: Pokemon):
+    """
+    returns true if target is immune to a move because of typing, ability, item or other effects
+        :param score:
+        :param move:Move,
+        :param user:Pokémon,
+        :param target:Pokémon,
+        :return
+    """
     move_type = move.type
     type_mod = target.damage_multiplier(move_type)
     if (move.base_power > 0 and type_mod == 0) or score <= 0:
@@ -436,6 +456,13 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
 # Accuracy calculation
 # =============================================================================
 def rough_accuracy(move: Move, user: Pokemon, target: Pokemon):
+    """
+    calculates accuracy
+        :param move:Move
+        :param user:Pokémon
+        :param target:Pokémon
+        :return
+    """
     # "Always hit" effects and "always hit" accuracy
     if target.effects[Effect.MINIMIZE] and move.id == move.retrieve_id("heavy slam"):
         return 125
@@ -537,14 +564,31 @@ def get_max_damage_move(battle: DoubleBattle, my_pokemon: Pokemon, opponents: Li
             maxtarget = target
     return maxmove, maxtarget, maxdamage
 
-def rough_max_hp(battler : Pokemon):
+
+def rough_max_hp(battler: Pokemon):
+    """
+    calculates rough max hp of the battler
+        :param battler:Pokémon
+        :return
+    """
     base = battler.base_stats[Stat.HP.value]
     level = battler.level
     iv = 31
     ev = 0
-    hp = math.floor(((2*base+iv+math.floor(ev/4))*level)/100) + level + 10
+    hp = calc_hp_stat_value(base, iv, ev, level)
     return hp
+
+
 def rough_percentage_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: DoubleBattle):
+    """
+    returns rough damage as percentage given the base damage
+        :param move:Move
+        :param user:Pokémon
+        :param target:Pokémon
+        :param base_dmg
+        :param battle:DoubleBattle
+        :return
+    """
     damage = rough_damage(move, user, target, base_dmg, battle)
     hp = rough_max_hp(target)
     # print("move", move, "target", target, "damage", damage, "target hp", hp)
@@ -554,10 +598,26 @@ def rough_percentage_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg
 
 
 def calculate_percentage_damage(move: Move, user: Pokemon, target: Pokemon, battle: DoubleBattle):
+    """
+    returns rough damage as percentage
+        :param move:Move
+        :param user:Pokémon
+        :param target:Pokémon
+        :param battle:DoubleBattle
+        :return
+    """
     base_damage = move_base_damage(move, user, target)
     return rough_percentage_damage(move, user, target, base_damage, battle)
 
 
 def calculate_damage(move: Move, user: Pokemon, target: Pokemon, battle: DoubleBattle):
+    """
+    returns rough damage
+        :param move:Move
+        :param user:Pokémon
+        :param target:Pokémon
+        :param battle:DoubleBattle
+        :return
+    """
     base_damage = move_base_damage(move, user, target)
     return rough_damage(move, user, target, base_damage, battle)
