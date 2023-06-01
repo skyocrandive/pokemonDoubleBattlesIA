@@ -4,6 +4,15 @@ from poke_env.environment import Move, Pokemon, DoubleBattle, Effect, Status, We
 from poke_env.environment.move_category import MoveCategory
 from poke_env.environment.pokemon_type import PokemonType
 
+_fixedDamageLevel = {
+    Move.retrieve_id("night shade"),
+    Move.retrieve_id("seismic toss"),
+}
+_moveHalveHP = {
+    Move.retrieve_id("nature's madness"),
+    Move.retrieve_id("super fang"),
+}
+
 _multiTargets = {
     "all",
     "allAdjacent",
@@ -75,6 +84,8 @@ def is_move_immune(score, move: Move, user: Pokemon, target: Pokemon):
         return True
     match move_type:
         case move_type.GROUND:
+            if target.item and target.item.lower() == "air balloon":
+                return True
             if target.ability and target.ability.lower() == "levitate":
                 return True
         case move_type.FIRE:
@@ -123,6 +134,11 @@ def is_move_immune(score, move: Move, user: Pokemon, target: Pokemon):
 # =============================================================================
 
 def speed_calc(battler: Pokemon):
+    """
+    estimates battler's current speed value
+    :param battler: ,
+    :return:
+    """
     stage_mul = [2, 2, 2, 2, 2, 2, 2, 3, 4, 5, 6, 7, 8]
     stage_div = [8, 7, 6, 5, 4, 3, 2, 2, 2, 2, 2, 2, 2]
     stage = battler.boosts["spe"] + 6
@@ -130,8 +146,13 @@ def speed_calc(battler: Pokemon):
     speed = battler.stats["spe"]
     multiplier = 1
     if speed is None:
-        speed = battler.base_stats["spe"]
-
+        iv = 31
+        ev = 0
+        level = battler.level
+        base_speed = battler.base_stats["spe"]
+        nature = 1
+        # speed = math.floor(math.floor(2*base_speed+iv+math.floor(ev/4)*level)*nature)
+        speed = calc_non_hp_stat_value(base_speed, iv, ev, level, nature)
     if battler.status.value == Status.PAR:
         multiplier = 0.5
         if battler.ability and battler.ability.lower() == "quick feet":
@@ -143,8 +164,13 @@ def speed_calc(battler: Pokemon):
     return speed * multiplier * stage_mul[stage] / stage_div[stage]
 
 
-# TODO: change base_stat with stat calculated with base_stat, 31 IV, 0 EV
 def rough_stat(battler: Pokemon, stat: Stat):
+    """
+    estimates battler current value of a given stat
+    :param battler: Pokémon,
+    :param stat: Stat,
+    :return:
+    """
     if stat == Stat.SPEED:
         return speed_calc(battler)
 
@@ -153,14 +179,55 @@ def rough_stat(battler: Pokemon, stat: Stat):
     stage = battler.boosts[stat.value] + 6
     value = battler.stats[stat.value]
     if value is None:
-        value = battler.base_stats[stat.value]
+        base_value = battler.base_stats[stat.value]
+        iv = 31
+        ev = 0
+        level = battler.level
+        nature = 1
+        # value = math.floor(math.floor(2*base_value+iv+math.floor(ev/4)*level)*nature)
+        value = calc_non_hp_stat_value(base_value, iv, ev, level, nature)
     return value * stage_mul[stage] / stage_div[stage]
+
+
+def calc_hp_stat_value(base_hp, iv, ev, level):
+    """
+    calculate the hp stat of a Pokémon given base stat, iv, ev and level
+    :param base_hp:
+    :param iv:,
+    :param ev:,
+    :param level:,
+    :return:
+    """
+    return math.floor(((2 * base_hp + iv + math.floor(ev / 4)) * level) / 100) + level + 10
+
+
+def calc_non_hp_stat_value(base_stat, iv, ev, level, nature_bonus):
+    """
+    calculate the stat value of a Pokémon using the given base stat, iv, ev, level, and the bonus given to the nature.
+    this function does not calculate the HP stat.
+    To calculate the HP stat use calc_hp_stat_value(base_stat, iv, ev, level)
+    :param base_stat:
+    :param iv:,
+    :param ev:,
+    :param level:,
+    :param nature_bonus:,
+    :return:
+    """
+    return math.floor(math.floor(2 * base_stat + iv + math.floor(ev / 4) * level) * nature_bonus)
 
 
 # =============================================================================
 # Get a better move's base damage value
 # =============================================================================
 def move_base_damage(move: Move, user: Pokemon, target: Pokemon):
+    """
+    calculate a move's base damage even considering special cases such as acrobatics, gyro ball
+    and sets the base damage for counter-like moves to 60
+    :param move:,
+    :param user:,
+    :param target:,
+    :return:
+    """
     base_dmg = move.base_power
     if move.target == "scripted":
         base_dmg = 60
@@ -187,7 +254,28 @@ def move_base_damage(move: Move, user: Pokemon, target: Pokemon):
 # =============================================================================
 
 def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: DoubleBattle):
+    """
+    calculate a rough estimation of the damage dealt by a move to the target given the move's base damage
+    :param move:,
+    :param user:,
+    :param target:,
+    :param base_dmg:,
+    :param battle:,
+    :return:
+    """
+
     # Fixed damage moves
+    if move.id in _fixedDamageLevel:  # move deals damage depending on user level
+        return user.level
+
+    if move.id in _moveHalveHP:  # move deals half of target's current HP
+        max_hp = target.max_hp
+        if max_hp <= 100:
+            max_hp = rough_max_hp(target)
+        return math.floor(max_hp * target.current_hp_fraction / 2)
+
+    if base_dmg == 0:
+        return 0
 
     # Get the move's type
     move_type = move.type
@@ -242,7 +330,8 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
                 multipliers["attack_multiplier"] *= 1.5
             if move.id == move.retrieve_id("facade"):
                 multipliers["base_damage_multiplier"] *= 2
-        if target.ability and target.ability.lower() == "multiscale" and target.current_hp_fraction == 1 and not mold_breaker:
+        if target.ability and target.ability.lower() == "multiscale" and target.current_hp_fraction == 1 \
+                and not mold_breaker:
             multipliers["defense_multiplier"] *= 2
 
     # Me First
@@ -458,14 +547,16 @@ def rough_max_hp(battler : Pokemon):
 def rough_percentage_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: DoubleBattle):
     damage = rough_damage(move, user, target, base_dmg, battle)
     hp = rough_max_hp(target)
-    #print("move", move, "target", target, "damage", damage, "target hp", hp)
+    # print("move", move, "target", target, "damage", damage, "target hp", hp)
     if damage <= 0:
         return 0
-    return (damage/hp)*100
+    return (damage / hp) * 100
+
 
 def calculate_percentage_damage(move: Move, user: Pokemon, target: Pokemon, battle: DoubleBattle):
     base_damage = move_base_damage(move, user, target)
     return rough_percentage_damage(move, user, target, base_damage, battle)
+
 
 def calculate_damage(move: Move, user: Pokemon, target: Pokemon, battle: DoubleBattle):
     base_damage = move_base_damage(move, user, target)
