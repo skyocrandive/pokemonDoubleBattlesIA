@@ -2,7 +2,7 @@ import enum
 import math
 from typing import List
 
-from poke_env.environment import Move, Pokemon, DoubleBattle, Effect, Status, Weather, SideCondition
+from poke_env.environment import Move, Pokemon, DoubleBattle, Effect, Status, Weather, SideCondition, Field
 from poke_env.environment.move_category import MoveCategory
 from poke_env.environment.pokemon_type import PokemonType
 
@@ -46,7 +46,7 @@ class Stat(enum.Enum):
 # =============================================================================
 # if Move its multiple targets
 # =============================================================================
-def multiple_targets(move: Move, battle: DoubleBattle):
+def multiple_targets(move: Move, battle: DoubleBattle, opponent_prospective=False):
     """
     returns true if the move hits multiple targets
         :param move:Move
@@ -62,7 +62,10 @@ def multiple_targets(move: Move, battle: DoubleBattle):
         case "all":
             return len(battle.all_active_pokemons) > 2
         case "allAdjacentFoes":
-            return len(battle.opponent_active_pokemon) > 1
+            if opponent_prospective:
+                return len(battle.active_pokemon) > 1
+            else:
+                return len(battle.opponent_active_pokemon) > 1
     return False
 
 
@@ -132,19 +135,20 @@ def is_move_immune(score, move: Move, user: Pokemon, target: Pokemon):
         if target.item and target.item.lower() == "safety goggles":
             return True
 
-    if move.category.value == MoveCategory.STATUS and move.status and Effect.SUBSTITUTE in target.effects.values():
+    if move.category.value == MoveCategory.STATUS and move.status and (
+            target.effects.get(Effect.SUBSTITUTE) or target.status):
         return True
 
     if move.category.value == MoveCategory.STATUS and user.ability.lower() == "prankster" \
             and PokemonType.DARK in target.types:
         return True
 
-    if move.priority and Effect.PSYCHIC_TERRAIN in target.effects.values():
+    if move.priority and target.effects.get(Effect.PSYCHIC_TERRAIN):
         return True
-    if move.category.value == MoveCategory.STATUS and move.status and Effect.MISTY_TERRAIN in target.effects.values():
+    if move.category.value == MoveCategory.STATUS and move.status and target.effects.get(Effect.MISTY_TERRAIN):
         return True
     if move.category.value == MoveCategory.STATUS and move.status.value == Status.SLP \
-            and Effect.ELECTRIC_TERRAIN in target.effects.values():
+            and target.effects.get(Effect.ELECTRIC_TERRAIN):
         return True
     return False
 
@@ -273,9 +277,11 @@ def move_base_damage(move: Move, user: Pokemon, target: Pokemon):
 # Damage calculation
 # =============================================================================
 
-def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: DoubleBattle):
+def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
+                 battle: DoubleBattle, opponent_prospective=False):
     """
     calculate a rough estimation of the damage dealt by a move to the target given the move's base damage
+    :param opponent_prospective:
     :param move:,
     :param user:,
     :param target:,
@@ -359,7 +365,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
     # Helping Hand - n/a
 
     # Terrain moves
-    match user.effects.values():
+    match user.effects.keys():
         case Effect.ELECTRIC_TERRAIN:
             if move_type == move_type.ELECTRIC:
                 multipliers["base_damage_multiplier"] *= 1.5
@@ -375,7 +381,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
         multipliers["final_damage_multiplier"] *= 0.75
 
     # Weather
-    match battle.weather.values():
+    match battle.weather.keys():
         case Weather.SUNNYDAY:
             if move_type == move_type.FIRE:
                 multipliers["final_damage_multiplier"] *= 1.5
@@ -409,10 +415,12 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
             and not user.ability.lower() == "guts" and not move.id == move.retrieve_id("facade"):
         multipliers["final_damage_multiplier"] /= 2
 
+    multipliers["final_damage_multiplier"] *= eval_side_conditions(user, move, battle, opponent_prospective)
+    '''
     # Aurora Veil, Reflect, Light Screen
     if not move.id == move.retrieve_id("brick break") and not move.id == move.retrieve_id(
             "psychic fangs") and not user.ability.upper() == "INFILTRATOR":
-        if SideCondition.AURORA_VEIL in battle.opponent_side_conditions.values():
+        if battle.opponent_side_conditions.get(SideCondition.AURORA_VEIL):
             multipliers[
                 "final_damage_multiplier"] *= 2 / 3.0  # in double battles screens reduce damage by nearly 2/3
             # if len(battle.opponent_active_pokemon) > 1:
@@ -420,7 +428,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
             # else:
             #  multipliers["final_damage_multiplier"] /= 2
 
-        elif SideCondition.REFLECT in battle.opponent_side_conditions.values() \
+        elif battle.opponent_side_conditions.get(SideCondition.REFLECT) \
                 and move.category == MoveCategory.PHYSICAL:
             multipliers[
                 "final_damage_multiplier"] *= 2 / 3.0  # in double battles screens reduce damage by nearly 2/3
@@ -429,7 +437,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
             # else:
             #  multipliers["final_damage_multiplier"] /= 2
 
-        elif SideCondition.LIGHT_SCREEN in battle.opponent_side_conditions.values() \
+        elif battle.opponent_side_conditions.get(SideCondition.LIGHT_SCREEN) \
                 and move.category == MoveCategory.SPECIAL:
             multipliers[
                 "final_damage_multiplier"] *= 2 / 3.0  # in double battles screens reduce damage by nearly 2/3
@@ -437,7 +445,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
             #  multipliers["final_damage_multiplier"] *= 2 / 3.0
             # else:
             #  multipliers["final_damage_multiplier"] /= 2
-
+    '''
     # ---- Main damage calculation --------
     base_dmg = max([(base_dmg * multipliers["base_damage_multiplier"]), 1])
     atk = max([(atk * multipliers["attack_multiplier"]), 1])
@@ -451,6 +459,46 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: D
 
 
 # ----- fine rough_damage -------------------
+
+# --- valutazione sidecondition--------------
+def eval_side_conditions(user: Pokemon, move: Move, battle: DoubleBattle, opponent_prospective=False) -> int:
+    multiplier = 1
+    side_conditions = battle.opponent_side_conditions
+    if opponent_prospective:
+        side_conditions = battle.side_conditions
+
+    # Aurora Veil, Reflect, Light Screen
+    if not move.id == move.retrieve_id("brick break") and not move.id == move.retrieve_id(
+            "psychic fangs") and not user.ability.upper() == "INFILTRATOR":
+
+        if side_conditions.get(SideCondition.AURORA_VEIL):
+            multiplier *= 2 / 3.0  # in double battles screens reduce damage by nearly 2/3
+            # if len(battle.opponent_active_pokemon) > 1:
+            #  multipliers["final_damage_multiplier"] *= 2 / 3.0
+            # else:
+            #  multipliers["final_damage_multiplier"] /= 2
+
+        elif side_conditions.get(SideCondition.REFLECT) \
+                and move.category == MoveCategory.PHYSICAL:
+            multiplier *= 2 / 3.0  # in double battles screens reduce damage by nearly 2/3
+            # if len(battle.opponent_active_pokemon) > 1:
+            #  multipliers["final_damage_multiplier"] *= 2 / 3.0
+            # else:
+            #  multipliers["final_damage_multiplier"] /= 2
+
+        elif side_conditions.get(SideCondition.LIGHT_SCREEN) \
+                and move.category == MoveCategory.SPECIAL:
+            multiplier *= 2 / 3.0  # in double battles screens reduce damage by nearly 2/3
+            # if len(battle.opponent_active_pokemon) > 1:
+            #  multipliers["final_damage_multiplier"] *= 2 / 3.0
+            # else:
+            #  multipliers["final_damage_multiplier"] /= 2
+
+    return multiplier
+
+
+# --- fine valutazione sidecondition---------
+
 
 # =============================================================================
 # Accuracy calculation
@@ -579,9 +627,11 @@ def rough_max_hp(battler: Pokemon):
     return hp
 
 
-def rough_percentage_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg, battle: DoubleBattle):
+def rough_percentage_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
+                            battle: DoubleBattle, opponent_prospective=False):
     """
     returns rough damage as percentage given the base damage
+        :param opponent_prospective:
         :param move:Move
         :param user:Pokémon
         :param target:Pokémon
@@ -589,7 +639,7 @@ def rough_percentage_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg
         :param battle:DoubleBattle
         :return
     """
-    damage = rough_damage(move, user, target, base_dmg, battle)
+    damage = rough_damage(move, user, target, base_dmg, battle, opponent_prospective)
     hp = rough_max_hp(target)
     # print("move", move, "target", target, "damage", damage, "target hp", hp)
     if damage <= 0:
@@ -597,9 +647,11 @@ def rough_percentage_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg
     return (damage / hp) * 100
 
 
-def calculate_percentage_damage(move: Move, user: Pokemon, target: Pokemon, battle: DoubleBattle):
+def calculate_percentage_damage(move: Move, user: Pokemon, target: Pokemon,
+                                battle: DoubleBattle, opponent_prospective=False):
     """
     returns rough damage as percentage
+        :param opponent_prospective:
         :param move:Move
         :param user:Pokémon
         :param target:Pokémon
@@ -607,12 +659,14 @@ def calculate_percentage_damage(move: Move, user: Pokemon, target: Pokemon, batt
         :return
     """
     base_damage = move_base_damage(move, user, target)
-    return rough_percentage_damage(move, user, target, base_damage, battle)
+    return rough_percentage_damage(move, user, target, base_damage, battle, opponent_prospective)
 
 
-def calculate_damage(move: Move, user: Pokemon, target: Pokemon, battle: DoubleBattle):
+def calculate_damage(move: Move, user: Pokemon, target: Pokemon,
+                     battle: DoubleBattle, opponent_prospective=False):
     """
     returns rough damage
+        :param opponent_prospective:
         :param move:Move
         :param user:Pokémon
         :param target:Pokémon
@@ -620,4 +674,76 @@ def calculate_damage(move: Move, user: Pokemon, target: Pokemon, battle: DoubleB
         :return
     """
     base_damage = move_base_damage(move, user, target)
-    return rough_damage(move, user, target, base_damage, battle)
+    return rough_damage(move, user, target, base_damage, battle, opponent_prospective)
+
+
+def get_opponent_max_damage_move(battle: DoubleBattle, my_mon: Pokemon, opponent: Pokemon) -> \
+        (Move, int):
+    """
+    returns the move that deals the most damage to my_mon
+    across the ones known by the given opponent's Pokémon
+    the value returned is a tuple (move, damage) with
+    move : the most damaging move
+    damage : the predicted percentage damage that would deal the move to my_mon
+
+    """
+    moves = opponent.moves.values()
+    maxmove = None
+    maxdamage = 0
+    for move in moves:
+        # print(move.__str__())
+        damage = calculate_percentage_damage(move, opponent, my_mon, battle, opponent_prospective=True)
+
+        if damage > maxdamage:
+            maxdamage = damage
+            maxmove = move
+
+    return maxmove, maxdamage
+
+
+def move_can_ko(move, user, target, battle, opponent_prospective=False) -> bool:
+    """
+    returns a boolean inidicating wheter the given move used by user can ko the target.
+    :param move:
+    :param user:
+    :param target:
+    :param battle:
+    :param opponent_prospective: if the user is opponent's mon, False by default
+    :return:
+    """
+    damage = calculate_percentage_damage(move, user, target, battle, opponent_prospective)
+    return damage >= target.current_hp_fraction
+
+
+def can_outspeed(battle: DoubleBattle, battler: Pokemon, target: Pokemon) -> bool:
+    """
+    returns true if battler is faster than target considering trick_room
+    :param battle:
+    :param battler:
+    :param target:
+    :return:
+    """
+    my_speed = speed_calc(battler)
+    target_speed = speed_calc(target)
+    res = (my_speed > target_speed)
+    trick_room = (battle.fields.get(Field.TRICK_ROOM) is not None)
+    if trick_room:
+        return not res
+    else:
+        return res
+
+
+def can_damage(battler: Pokemon, target: Pokemon) -> bool:
+    """
+    returns true if battler has a super-effective damaging move with more tha 50 base power
+    :param battler:
+    :param target:
+    :return:
+    """
+    for move in battler.moves.values():
+        base_damage = move_base_damage(move, battler, target)
+        type_mod = target.damage_multiplier(move.type)
+        if base_damage > 50 and type_mod > 1:
+            return True
+
+    return False
