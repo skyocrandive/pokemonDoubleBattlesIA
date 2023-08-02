@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from poke_env.environment import Pokemon
 
 # This class will hold a single game-state, consisting of:
 # * Battle object that holds global game state

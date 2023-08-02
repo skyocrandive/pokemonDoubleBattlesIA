@@ -92,10 +92,9 @@ def pokemon_type_advantage(user: Pokemon, target: Pokemon):
 # =============================================================================
 # Immunity to a move because of the target's ability, item or other effects
 # =============================================================================
-def is_move_immune(score, move: Move, user: Pokemon, target: Pokemon):
+def is_move_immune(move: Move, user: Pokemon, target: Pokemon):
     """
     returns true if target is immune to a move because of typing, ability, item or other effects
-        :param score:
         :param move:Move,
         :param user:Pokémon,
         :param target:Pokémon,
@@ -103,7 +102,7 @@ def is_move_immune(score, move: Move, user: Pokemon, target: Pokemon):
     """
     move_type = move.type
     type_mod = target.damage_multiplier(move_type)
-    if (move.base_power > 0 and type_mod == 0) or score <= 0:
+    if move.base_power > 0 and type_mod == 0:
         return True
     match move_type:
         case move_type.GROUND:
@@ -147,7 +146,7 @@ def is_move_immune(score, move: Move, user: Pokemon, target: Pokemon):
         return True
     if move.category.value == MoveCategory.STATUS and move.status and target.effects.get(Effect.MISTY_TERRAIN):
         return True
-    if move.category.value == MoveCategory.STATUS and move.status.value == Status.SLP \
+    if move.category.value == MoveCategory.STATUS and move.status == Status.SLP \
             and target.effects.get(Effect.ELECTRIC_TERRAIN):
         return True
     return False
@@ -177,7 +176,7 @@ def speed_calc(battler: Pokemon):
         nature = 1
         # speed = math.floor(math.floor(2*base_speed+iv+math.floor(ev/4)*level)*nature)
         speed = calc_non_hp_stat_value(base_speed, iv, ev, level, nature)
-    if battler.status.value == Status.PAR:
+    if battler.status == Status.PAR:
         multiplier = 0.5
         if battler.ability and battler.ability.lower() == "quick feet":
             multiplier = 1
@@ -289,6 +288,9 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
     :param battle:,
     :return:
     """
+
+    if is_move_immune(move, user, target):
+        return 0
 
     # Fixed damage moves
     if move.id in _fixedDamageLevel:  # move deals damage depending on user level

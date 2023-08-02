@@ -3,12 +3,15 @@
 # =============================================================================
 import random
 
+from poke_env.player import BattleOrder
+
+import AttackChooser
 import MoveUtilities
 
 from poke_env.environment import Move, Pokemon, DoubleBattle, Effect
 
 
-def should_withdraw(battle: DoubleBattle, idxBattler) -> Pokemon | None:
+def should_withdraw(battle: DoubleBattle, idx_battler) -> BattleOrder | None:
     """
     return the best switch if pokemon identified by idxBattler should switch, else return None
     :param battle:
@@ -28,9 +31,10 @@ def should_withdraw(battle: DoubleBattle, idxBattler) -> Pokemon | None:
         # predicted_move = Move
         (predicted_move, predicted_damage) = MoveUtilities.get_opponent_max_damage_move(battle, battler, target)
         predictions.append((target, predicted_move, predicted_damage))
-
-        if MoveUtilities.can_outspeed(battle, target, battler) and battler.damage_multiplier(predicted_move.type) > 1:
-            switchChance = 0
+        if MoveUtilities.can_outspeed(battle, target,
+                                      battler) and predicted_move is not None and battler.damage_multiplier(
+                predicted_move.type) > 1:
+            switch_chance = 0
             if predicted_damage >= 98:  # most certain ohko
                 switchChance = 80
             elif predicted_damage > 70:  # does a lot of damage
@@ -52,7 +56,7 @@ def should_withdraw(battle: DoubleBattle, idxBattler) -> Pokemon | None:
         if score_count > 0 and score_sum / score_count <= 20 and ai_random.randint(0, 100) < 80:
             should_switch = True
 
-    # If there is a single foe and it is resting after Hyper Beam or is
+    # If there is a single foe which is resting after Hyper Beam or is
     # Truanting (i.e. free turn)
     if len(battle.opponent_active_pokemon) == 1:
         opp = battle.opponent_active_pokemon[0]
@@ -92,7 +96,7 @@ def should_withdraw(battle: DoubleBattle, idxBattler) -> Pokemon | None:
                 switch_order.append(pkmn)  # put this Pokemon last
 
         if len(switch_order) > 0:
-            return switch_order[0]
+            return BattleOrder(switch_order[0])
     return None
 
 
@@ -100,7 +104,7 @@ def should_withdraw(battle: DoubleBattle, idxBattler) -> Pokemon | None:
 # Choose a replacement Pokémon
 # =============================================================================
 
-def choose_possible_best_switch(battle, index: int):
+def choose_possible_best_switch(battle, index: int) -> Pokemon | None:
     if not battle.available_switches:
         return None
     # Go through each Pokémon that can be switched to, and choose one with the best type matchup against both opponents

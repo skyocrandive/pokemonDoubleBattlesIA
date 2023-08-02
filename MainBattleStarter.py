@@ -6,6 +6,7 @@ from poke_env import PlayerConfiguration, LocalhostServerConfiguration
 
 from DoublesRandomPlayer import DoubleRandomPlayer
 from DoublesMaxDamagePlayer import DoublesMaxDamagePlayer
+from DoublesSmartPlayer import DoublesSmartPlayer
 from DoublesTrueMaxDamagePlayer import DoublesTrueMaxDamagePlayer
 from Teams import RandomTeamFromPool
 
@@ -43,10 +44,18 @@ async def main():
         battle_format="gen8vgc2020"
     )
 
+    smart_player = DoublesSmartPlayer(
+        player_configuration=PlayerConfiguration("SmartBoyVGC", None),
+        server_configuration=LocalhostServerConfiguration,
+        team=RandomTeamFromPool(),
+        battle_format="gen8vgc2020"
+    )
+
     start = time.time()
     #await random_player.send_challenges("skyocrandive", n_challenges=1)
     #await maxdamage_player.send_challenges("skyocrandive", n_challenges=1)
-    await true_maxdamage_player.send_challenges("skyocrandive", n_challenges=1)
+    #await true_maxdamage_player.send_challenges("skyocrandive", n_challenges=1)
+    await smart_player.send_challenges("skyocrandive", n_challenges=1)
     #await smart_damage_player.battle_against(heuristic_player, n_battles=500)
 
     print(
