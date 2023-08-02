@@ -1,4 +1,5 @@
 import MoveUtilities
+import random
 
 from poke_env.environment import Move, Pokemon, DoubleBattle, Effect, Status, Weather, SideCondition
 from poke_env.environment.move_category import MoveCategory
@@ -24,97 +25,82 @@ def pbChooseMoves(battle: DoubleBattle, idxBattler):
     # Get scores and targets for each move
     # NOTE: A move is only added to the choices array if it has a non-zero
     #       score.
-    choices     = []
-    user.eachMoveWithIndex do |_m, i|
-      if not @battle.pbCanChooseMove(idxBattler, i, False):
-        continue
-      pbRegisterMoveTrainer(user, i, choices, skill)
-      end
-    end
+    choices = []  # lista di (move, score, target) aka list of ScoreOrder
+    for i, move in enumerate(battle.available_moves[idxBattler]):
+        pbRegisterMoveTrainer(battle, user, move, i, choices)
+
     # Figure out useful information about the choices
     totalScore = 0
-    maxScore   = 0
-    choices.each do |c|
-      totalScore += c[1]
-      maxScore = c[1] if maxScore < c[1]
-    end
-    # Log the available choices
-    if $INTERNAL
-      logMsg = "[AI] Move choices for #{user.pbThis(True)} (#{user.index}): "
-      choices.each_with_index do |c, i|
-        logMsg += "#{user.moves[c[0]].name}=#{c[1]}"
-        logMsg += " (target #{c[2]})" if c[2] >= 0
-        logMsg += ", " if i < choices.length - 1
-      end
-      PBDebug.log(logMsg)
-    end
-    # Find any preferred moves and just choose from them
-    if !wildBattler && skill >= PBTrainerAI.highSkill && maxScore > 100
-      stDev = pbStdDev(choices)
-      if stDev >= 40 && pbAIRandom(100) < 90
-        preferredMoves = []
-        choices.each do |c|
-          next if c[1] < 200 && c[1] < maxScore * 0.8
-          preferredMoves.push(c)
-          preferredMoves.push(c) if c[1] == maxScore   # Doubly prefer the best move
-        end
-        if preferredMoves.length > 0
-          m = preferredMoves[pbAIRandom(preferredMoves.length)]
-          PBDebug.log("[AI] #{user.pbThis} (#{user.index}) prefers #{user.moves[m[0]].name}")
-          @battle.pbRegisterMove(idxBattler, m[0], False)
-          @battle.pbRegisterTarget(idxBattler, m[2]) if m[2] >= 0
-          return
-        end
-      end
-    end
+    maxScore = 0
+    for c in choices:
+        score = c.score
+        totalScore += score
+        if maxScore < score:
+            maxScore = score
+
+    preferredMoves = []
+    for c in choices:
+        score = c.score
+        if score < 200 and score < maxScore * 0.8:
+            continue
+        preferredMoves.append(c)
+        if score == maxScore:  # Doubly prefer the best move
+            preferredMoves.append(c)
+
+    if preferredMoves.length > 0:
+        m = preferredMoves[random.randint(0, len(preferredMoves) - 1)]
+        # m = preferredMoves[pbAIRandom(preferredMoves.length)]
+        order = BattleOrder(m.move, move_target=m.target)
+        # PBDebug.log("[AI] #{user.pbThis} (#{user.index}) prefers #{user.moves[m[0]].name}")
+        # @battle.pbRegisterMove(idxBattler, m[0], False)
+        # @battle.pbRegisterTarget(idxBattler, m[2]) if m[2] >= 0
+        return order
+
     # Decide whether all choices are bad, and if so, try switching instead
-    if !wildBattler && skill >= PBTrainerAI.highSkill
-      badMoves = False
-      if ((maxScore <= 20 && user.turnCount > 2) ||
-         (maxScore <= 40 && user.turnCount > 5)) && pbAIRandom(100) < 80
+    badMoves = False
+    if (maxScore <= 20):
         badMoves = True
-      end
-      if !badMoves && totalScore < 100 && user.turnCount > 1
+
+    if not badMoves and totalScore < 100 and user.first_turn:
         badMoves = True
-        choices.each do |c|
-          next if !user.moves[c[0]].damagingMove?
-          badMoves = False
-          break
-        end
-        badMoves = False if badMoves && pbAIRandom(100) < 10
-      end
-      if badMoves && pbEnemyShouldWithdrawEx?(idxBattler, True)
-        if $INTERNAL
-          PBDebug.log("[AI] #{user.pbThis} (#{user.index}) will switch due to terrible moves")
-        end
-        return
-      end
-    end
+        for c in choices:
+            if c.move.base_power > 0:
+                badMoves = False
+                break
+
+    if badMoves:
+        ## switch due to terrible moves
+        switch = SwitchHelper.choose_possible_best_switch(battle, idxBattler)
+        if switch is not None:
+            return BattleOrder(switch)
+
     # If there are no calculated choices, pick one at random
-    if choices.length == 0
-      PBDebug.log("[AI] #{user.pbThis} (#{user.index}) doesn't want to use any moves; picking one at random")
-      user.eachMoveWithIndex do |_m, i|
-        next if !@battle.pbCanChooseMove?(idxBattler, i, False)
-        choices.push([i, 100, -1])   # Move index, score, target
-      end
-      if choices.length == 0   # No moves are physically possible to use; use Struggle
-        @battle.pbAutoChooseMove(user.index)
-      end
-    end
+    moves = battle.available_moves[idxBattler]
+    if len(choices) == 0:
+        for move in moves:
+            targetList = battle.get_possible_showdown_targets(move, user)
+
+            noSelfTarg = [x for x in targetList if x > 0]
+            if len(noSelfTarg):  # if the move can target an opponent don't target ally
+                targetList = noSelfTarg
+            targets[move] = targetList
+
+        choices.append(
+            [
+                ScoreOrder(move, 0, target)
+                for move in moves
+                for target in targets[move]
+            ]
+        )
+        # choices.push([i, 100, -1])   # Move index, score, target
+
     # Randomly choose a move from the choices and register it
-    randNum = pbAIRandom(totalScore)
-    choices.each do |c|
-      randNum -= c[1]
-      next if randNum >= 0
-      @battle.pbRegisterMove(idxBattler, c[0], False)
-      @battle.pbRegisterTarget(idxBattler, c[2]) if c[2] >= 0
-      break
-    end
-    # Log the result
-    if @battle.choices[idxBattler][2]
-      PBDebug.log("[AI] #{user.pbThis} (#{user.index}) will use #{@battle.choices[idxBattler][2].name}")
-    end
-  end
+    random.shuffle(choices)
+    res = choices[0]
+    order = BattleOrder(res.move, move_target=res.target)
+
+    return order
+
 
     # =============================================================================
     # Get scores for the given move against each possible target
