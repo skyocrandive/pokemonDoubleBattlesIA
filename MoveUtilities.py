@@ -743,7 +743,7 @@ def can_damage(battler: Pokemon, target: Pokemon) -> bool:
     for move in battler.moves.values():
         base_damage = move_base_damage(move, battler, target)
         type_mod = target.damage_multiplier(move.type)
-        if base_damage > 50 and type_mod > 1:
+        if base_damage >= 70 and type_mod > 1:
             return True
 
     return False
