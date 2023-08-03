@@ -80,15 +80,15 @@ IVs: 0 Atk
 - Volt Switch  
 - Protect  
 
-Incineroar @ Mago Berry  
-Ability: Intimidate  
+Talonflame @ Expert Belt  
+Ability: Gale Wings  
 Level: 50  
-EVs: 236 HP / 28 Atk / 84 Def / 148 SpD / 12 Spe  
-Careful Nature  
-- Darkest Lariat  
+EVs: 252 Atk / 4 SpD / 252 Spe  
+Adamant Nature  
+- Brave Bird  
 - Flare Blitz  
-- Parting Shot  
-- Snarl  
+- U-turn  
+- Tailwind
 
 Urshifu @ Focus Sash  
 Ability: Unseen Fist  
