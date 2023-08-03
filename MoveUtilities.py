@@ -143,7 +143,7 @@ def is_move_immune(move: Move, user: Pokemon, target: Pokemon):
             target.effects.get(Effect.SUBSTITUTE) or target.status):
         return True
 
-    if move.category.value == MoveCategory.STATUS and user.ability.lower() == "prankster" \
+    if move.category.value == MoveCategory.STATUS and user.ability and user.ability.lower() == "prankster" \
             and PokemonType.DARK in target.types:
         return True
 
@@ -323,9 +323,9 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
 
     # ------- Calculate user's attack stat -------------
     atk = rough_stat(user, Stat.ATTACK)
-    if move.id == Move.retrieve_id("foul play"):  # Foul Play
+    if move.id == Move.retrieve_id("Foul Play"):  # Foul Play
         atk = rough_stat(target, Stat.ATTACK)
-    elif move.id == Move.retrieve_id("body press"):  # Body Press
+    elif move.id == Move.retrieve_id("Body Press"):  # Body Press
         atk = rough_stat(user, Stat.DEFENSE)
     # if special move:
     elif move.category == MoveCategory.SPECIAL:
@@ -364,7 +364,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
         if user.item and user.item.lower() == "choice band":
             multipliers["attack_multiplier"] *= 1.5
         if user.status is not None:
-            if user.ability.lower() == "guts":
+            if user.ability and user.ability.lower() == "guts":
                 multipliers["attack_multiplier"] *= 1.5
             if move.id == move.retrieve_id("Facade"):
                 multipliers["base_damage_multiplier"] *= 2
@@ -424,7 +424,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
 
     # Burn, Facade
     if move.category == MoveCategory.PHYSICAL and user.status == Status.BRN \
-            and not user.ability.lower() == "guts" and not move.id == move.retrieve_id("facade"):
+            and not (user.ability and user.ability.lower() == "guts") and not move.id == move.retrieve_id("Facade"):
         multipliers["final_damage_multiplier"] /= 2
 
     multipliers["final_damage_multiplier"] *= eval_side_conditions(user, move, battle, opponent_prospective)

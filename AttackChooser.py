@@ -162,7 +162,7 @@ def get_move_score(battle: DoubleBattle, move: Move, user: Pokemon, target: Poke
             score += 60
         elif base_dmg > 0:
             score += 30
-        elif move.id.lower() == Move.retrieve_id("trick"):
+        elif move.id.lower() == Move.retrieve_id("Trick"):
             score += 70  # Trick
         else:
             score -= 60
@@ -186,10 +186,10 @@ def get_move_score(battle: DoubleBattle, move: Move, user: Pokemon, target: Poke
     score = score
     if score < 0:
         score = 0
-    return score
+    return int(score)
 
 
-def get_move_score_area(battle: DoubleBattle, move: Move, user: Pokemon):
+def get_move_score_area(battle: DoubleBattle, move: Move, user: Pokemon) -> int:
     base_score = 100
 
     # Prefer damaging moves if AI has no more Pokémon
@@ -227,7 +227,7 @@ def get_move_score_area(battle: DoubleBattle, move: Move, user: Pokemon):
     return int(total_score + base_score)
 
 
-def eval_status_move(move, user, target, score):
+def eval_status_move(move, user, target, score) -> int:
     if MoveUtilities.is_move_immune(move, user, target):
         return 0
     if move.status == Status.BRN and target.base_stats[MoveUtilities.Stat.ATTACK] > 100:
@@ -316,7 +316,7 @@ def use_prio(battle: DoubleBattle, idxBattler) -> BattleOrder | None:
     user = battle.active_pokemon[idxBattler]
     for move in battle.available_moves[idxBattler]:
         if move.priority > 0:
-            if move.base_power == 0 or (move.id == move.retrieve_id("fake out") and not user.first_turn):
+            if move.base_power == 0 or (move.id == move.retrieve_id("Fake Out") and move.max_pp > move.current_pp): #Pokemon.first_turn doesn't work
                 continue
             targets = battle.get_possible_showdown_targets(move, user)
             noSelfTarg = [x for x in targets if x > 0]
