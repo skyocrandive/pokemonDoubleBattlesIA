@@ -21,12 +21,14 @@ from poke_env.environment.move_category import MoveCategory
 
 async def main():
     start = time.time()
+    # battle_format = "gen8vgc2020"
+    battle_format = "gen8vgc2021"
 
     random_player = DoubleRandomPlayer(
         player_configuration=PlayerConfiguration("rando", None),
         server_configuration=LocalhostServerConfiguration,
         team=RandomTeamFromPool(),
-        battle_format="gen8vgc2020"
+        battle_format=battle_format
 
     )
 
@@ -34,21 +36,21 @@ async def main():
         player_configuration=PlayerConfiguration("elMaxoDamagio", None),
         server_configuration=LocalhostServerConfiguration,
         team=RandomTeamFromPool(),
-        battle_format="gen8vgc2020"
+        battle_format=battle_format
     )
 
     true_maxdamage_player = DoublesTrueMaxDamagePlayer(
         player_configuration=PlayerConfiguration("elMaxoDamagioMax", None),
         server_configuration=LocalhostServerConfiguration,
         team=RandomTeamFromPool(),
-        battle_format="gen8vgc2020"
+        battle_format=battle_format
     )
 
     smart_player = DoublesSmartPlayer(
         player_configuration=PlayerConfiguration("SmartBoyVGC", None),
         server_configuration=LocalhostServerConfiguration,
         team=RandomTeamFromPool(),
-        battle_format="gen8vgc2020"
+        battle_format=battle_format
     )
 
     start = time.time()

@@ -20,12 +20,14 @@ class ScoreOrder:
 
 
 def choose_moves(battle: DoubleBattle, idxBattler) -> BattleOrder:
+
     user = battle.active_pokemon[idxBattler]
 
     # Get scores and targets for each move
     # NOTE: A move is only added to the choices array if it has a non-zero
     #       score.
-    choices = [ScoreOrder]  # lista di (move, score, target) aka list of ScoreOrder
+    # lista di (move, score, target) aka list of ScoreOrder
+    choices = []
     for i, move in enumerate(battle.available_moves[idxBattler]):
         register_move_trainer(battle, user, move, choices)
 
@@ -58,7 +60,7 @@ def choose_moves(battle: DoubleBattle, idxBattler) -> BattleOrder:
 
     # Decide whether all choices are bad, and if so, try switching instead
     badMoves = False
-    if (maxScore <= 20):
+    if maxScore <= 20:
         badMoves = True
 
     if not badMoves and totalScore < 100 and user.first_turn:
@@ -69,7 +71,7 @@ def choose_moves(battle: DoubleBattle, idxBattler) -> BattleOrder:
                 break
 
     if badMoves:
-        ## switch due to terrible moves
+        # switch due to terrible moves
         switch = SwitchHelper.choose_possible_best_switch(battle, idxBattler)
         if switch is not None:
             return BattleOrder(switch)
@@ -108,7 +110,7 @@ def choose_moves(battle: DoubleBattle, idxBattler) -> BattleOrder:
     # Trainer Pokémon calculate how much they want to use each of their moves.
 
 
-def register_move_trainer(battle: DoubleBattle, user: Pokemon, move: Move, choices):
+def register_move_trainer(battle: DoubleBattle, user: Pokemon, move: Move, output):
     target_data = battle.get_possible_showdown_targets(move, user)
     if len(target_data) == 1:
         # If move has no targets, affects the user, a side or the whole field, or
@@ -118,10 +120,10 @@ def register_move_trainer(battle: DoubleBattle, user: Pokemon, move: Move, choic
 
         if score > 0:
             value = ScoreOrder(move, score, target=target_data[0])
-            choices.append(value)
+            output.append(value)
             # choices.push([idxMove, score, -1])
     else:
-        # If move affects one battler and you have to choose which one
+        # If move affects one battler && you have to choose which one
         scoresAndTargets = []
         for idx, oppo in enumerate(battle.opponent_active_pokemon):
             score = get_move_score(battle, move, user, oppo)
@@ -133,7 +135,7 @@ def register_move_trainer(battle: DoubleBattle, user: Pokemon, move: Move, choic
             # Get the one best target for the move
             scoresAndTargets.sort(key=lambda scoreOrder: scoreOrder.score, reverse=True)
             # scoresAndTargets.sort! { | a, b | b[0] <= > a[0]}
-            choices.append(scoresAndTargets[0])
+            output.append(scoresAndTargets[0])
             # choices.push([idxMove, scoresAndTargets[0][0], scoresAndTargets[0][1]])
 
     # =============================================================================
@@ -141,7 +143,7 @@ def register_move_trainer(battle: DoubleBattle, user: Pokemon, move: Move, choic
     # =============================================================================
 
 
-def get_move_score(battle: DoubleBattle, move: Move, user: Pokemon, target: Pokemon):
+def get_move_score(battle: DoubleBattle, move: Move, user: Pokemon, target: Pokemon) -> int:
     score = 100
 
     # Prefer damaging moves if AI has no more Pokémon
@@ -181,7 +183,7 @@ def get_move_score(battle: DoubleBattle, move: Move, user: Pokemon, target: Poke
         if score <= 10:
             score = 0
 
-    score = score.to_i
+    score = score
     if score < 0:
         score = 0
     return score
@@ -196,7 +198,7 @@ def get_move_score_area(battle: DoubleBattle, move: Move, user: Pokemon):
             base_score /= 1.5
 
     if move.category.value == MoveCategory.STATUS:  # self buff
-        return base_score
+        return int(base_score)
 
     total_score = 0
     for target in battle.opponent_active_pokemon:
@@ -222,7 +224,7 @@ def get_move_score_area(battle: DoubleBattle, move: Move, user: Pokemon):
     if total_score < 0:
         total_score = 0
 
-    return total_score + base_score
+    return int(total_score + base_score)
 
 
 def eval_status_move(move, user, target, score):
@@ -234,14 +236,14 @@ def eval_status_move(move, user, target, score):
         score += 50
         if target.base_stats[MoveUtilities.Stat.SPEED] > 100:
             score += 20
-    return score
+    return int(score)
     # =============================================================================
     # Add to a move's score based on how much damage it will deal (as a percentage
     # of the target's current HP)
     # =============================================================================
 
 
-def get_move_score_damage(score, move: Move, user, target, battle):
+def get_move_score_damage(score, move: Move, user, target, battle) -> int:
     if score <= 0:
         return 0
     # Calculate how much damage the move will do (roughly)
@@ -261,8 +263,8 @@ def get_move_score_damage(score, move: Move, user, target, battle):
         damagePercentage = 120
     if damagePercentage > 100:  # Prefer moves likely to be lethal
         damagePercentage += 40
-    score += damagePercentage.to_i
-    return score
+    score += damagePercentage
+    return int(score)
 
 
 def use_protect(battle: DoubleBattle, idxBattler) -> BattleOrder | None:
@@ -270,7 +272,8 @@ def use_protect(battle: DoubleBattle, idxBattler) -> BattleOrder | None:
     has_protect = False
     protect = None
     for move in battle.available_moves[idxBattler]:
-        if move.id == Move.retrieve_id("protect") or move.id == Move.retrieve_id("detect"):
+        if move.id == Move.retrieve_id("Protect") or move.id == Move.retrieve_id("Detect"):
+            print("has protect")
             has_protect = True
             protect = move
             break
@@ -280,7 +283,9 @@ def use_protect(battle: DoubleBattle, idxBattler) -> BattleOrder | None:
     for oppo in battle.opponent_active_pokemon:
         if MoveUtilities.can_damage(oppo, user):
             damagers += 1
-    base_probability = damagers * 40
+    base_probability = damagers * 30
+    if len(battle.available_switches) == 0:
+        base_probability -= 20
     if random.randint(0, 100) < base_probability:
         return BattleOrder(protect, move_target=battle.get_possible_showdown_targets(protect, user)[0])
 
@@ -315,7 +320,8 @@ def use_prio(battle: DoubleBattle, idxBattler) -> BattleOrder | None:
                 continue
             targets = battle.get_possible_showdown_targets(move, user)
             noSelfTarg = [x for x in targets if x > 0]
-            for target in noSelfTarg:
+            for idxtarget in noSelfTarg:
+                target = battle.opponent_active_pokemon[idxtarget-1]
                 if MoveUtilities.move_can_ko(move, user, target, battle):
-                    return BattleOrder(move, move_target=target)
+                    return BattleOrder(move, move_target=idxtarget)
     return None

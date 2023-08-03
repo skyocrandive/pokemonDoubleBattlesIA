@@ -1,6 +1,5 @@
 from poke_env.teambuilder import Teambuilder
-from poke_env.environment.pokemon import Pokemon
-import numpy as np
+
 
 class RandomTeamFromPool(Teambuilder):
 
@@ -69,8 +68,71 @@ IVs: 0 Atk
 - Charm  
 """
 
+    team_2 = """
+Regieleki @ Magnet  
+Ability: Transistor  
+Level: 50  
+EVs: 60 HP / 148 Def / 252 SpA / 4 SpD / 44 Spe  
+Modest Nature  
+IVs: 0 Atk  
+- Electroweb  
+- Thunderbolt  
+- Volt Switch  
+- Protect  
+
+Incineroar @ Mago Berry  
+Ability: Intimidate  
+Level: 50  
+EVs: 236 HP / 28 Atk / 84 Def / 148 SpD / 12 Spe  
+Careful Nature  
+- Darkest Lariat  
+- Flare Blitz  
+- Parting Shot  
+- Snarl  
+
+Urshifu @ Focus Sash  
+Ability: Unseen Fist  
+Level: 50  
+EVs: 252 Atk / 4 SpD / 252 Spe  
+Jolly Nature  
+- Wicked Blow  
+- Close Combat  
+- Sucker Punch  
+- Detect  
+
+Tapu Fini @ Sitrus Berry  
+Ability: Misty Surge  
+Level: 50  
+EVs: 252 HP / 36 Def / 116 SpA / 52 SpD / 52 Spe  
+Modest Nature  
+IVs: 0 Atk  
+- Muddy Water  
+- Moonblast  
+- Calm Mind  
+- Protect  
+
+Kartana @ Assault Vest  
+Ability: Beast Boost  
+Level: 50  
+EVs: 92 HP / 108 Atk / 4 Def / 116 SpA / 188 Spe  
+- Sacred Sword  
+- Smart Strike  
+- Leaf Blade  
+- Aerial Ace  
+
+Mamoswine @ Life Orb  
+Ability: Oblivious  
+Level: 50  
+EVs: 108 HP / 236 Atk / 4 Def / 4 SpD / 156 Spe  
+Adamant Nature  
+- Stomping Tantrum  
+- Icicle Crash  
+- Ice Shard  
+- Protect  
+"""
+
     def __init__(self):
-        self.teams = [self.join_team(self.parse_showdown_team(self.team_1))]
+        self.teams = [self.join_team(self.parse_showdown_team(self.team_2))]
 
 
     def yield_team(self):

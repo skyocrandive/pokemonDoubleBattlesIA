@@ -30,7 +30,8 @@ def should_withdraw(battle: DoubleBattle, idx_battler) -> BattleOrder | None:
     for target in battle.opponent_active_pokemon:
         # predicted_move = Move
         (predicted_move, predicted_damage) = MoveUtilities.get_opponent_max_damage_move(battle, battler, target)
-        predictions.append((target, predicted_move, predicted_damage))
+        if predicted_damage > 0:
+            predictions.append((target, predicted_move, predicted_damage))
         if MoveUtilities.can_outspeed(battle, target,
                                       battler) and predicted_move is not None and battler.damage_multiplier(
                 predicted_move.type) > 1:
@@ -88,7 +89,8 @@ def should_withdraw(battle: DoubleBattle, idx_battler) -> BattleOrder | None:
                         temp_weight = 60
                 if temp_weight > weight:
                     weight = temp_weight
-
+            if weight < 40:
+                continue
             if ai_random.randint(0, 100) < weight:
                 switch_order.insert(0, pkmn)  # Put this Pokémon first
 

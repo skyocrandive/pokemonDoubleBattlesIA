@@ -7,12 +7,12 @@ from poke_env.environment.move_category import MoveCategory
 from poke_env.environment.pokemon_type import PokemonType
 
 _fixedDamageLevel = {
-    Move.retrieve_id("night shade"),
-    Move.retrieve_id("seismic toss"),
+    Move.retrieve_id("Night Shade"),
+    Move.retrieve_id("Seismic Toss"),
 }
 _moveHalveHP = {
-    Move.retrieve_id("nature's madness"),
-    Move.retrieve_id("super fang"),
+    Move.retrieve_id("Nature's Madness"),
+    Move.retrieve_id("Super Fang"),
 }
 
 _multiTargets = {
@@ -105,6 +105,10 @@ def is_move_immune(move: Move, user: Pokemon, target: Pokemon):
     type_mod = target.damage_multiplier(move_type)
     if move.base_power > 0 and type_mod == 0:
         return True
+    if move.id == move.retrieve_id("Fake Out") and user.first_turn:  # user.first_turn doesn't work
+        print("fakeout will fail")
+        return True
+
     match move_type:
         case move_type.GROUND:
             if target.item and target.item.lower() == "air balloon":
@@ -127,7 +131,7 @@ def is_move_immune(move: Move, user: Pokemon, target: Pokemon):
     if move.base_power > 0 and type_mod <= 1 and target.ability and target.ability == "wonder guard":
         return True
 
-    if move.id.lower() == Move.retrieve_id("spore"):
+    if move.id.lower() == Move.retrieve_id("Spore"):
         if PokemonType.GRASS in target.types:
             return True
         if target.ability and target.ability.lower() == "overcoat":
@@ -205,7 +209,7 @@ def rough_stat(battler: Pokemon, stat: Stat):
     if value is None:
         base_value = battler.base_stats[stat.value]
         iv = 31
-        ev = 0
+        ev = 52
         level = battler.level
         nature = 1
         # value = math.floor(math.floor(2*base_value+iv+math.floor(ev/4)*level)*nature)
@@ -253,19 +257,24 @@ def move_base_damage(move: Move, user: Pokemon, target: Pokemon):
     :return:
     """
     base_dmg = move.base_power
+    if move.id == move.retrieve_id("Wicked Blow"):
+        return base_dmg*1.5
+    if move.id == move.retrieve_id("Surging Strikes"):
+        return base_dmg*1.5*3
+
     if move.target == "scripted":
         base_dmg = 60
-    if move.id == Move.retrieve_id("acrobatics"):
+    if move.id == Move.retrieve_id("Acrobatics"):
         if user.item is None:
             base_dmg *= 2
-    if move.id == Move.retrieve_id("gyro ball"):
+    if move.id == Move.retrieve_id("Gyro Ball"):
         target_speed = rough_stat(target, Stat.SPEED)
         user_speed = rough_stat(user, Stat.SPEED)
         base_dmg = max([min([(25 * target_speed / user_speed), 150]), 1])
 
     # multi-hit move
     min_hits, max_hits = move.n_hit
-    if user.ability.lower() == "skill link":
+    if user.ability and user.ability.lower() == "skill link":
         base_dmg *= max_hits
     else:
         base_dmg *= move.expected_hits
@@ -324,7 +333,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
 
     # ----- Calculate target's defense stat ---------
     defense = rough_stat(target, Stat.DEFENSE)
-    if move.category == MoveCategory.SPECIAL and not move.id == Move.retrieve_id("psyshock"):
+    if move.category == MoveCategory.SPECIAL and not move.id == Move.retrieve_id("Psyshock"):
         defense = rough_stat(target, Stat.SPECIAL_DEFENSE)
 
     # ----- Calculate all multiplier effects -------
@@ -336,7 +345,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
     }
     # Ability effects that alter damage
     mold_breaker = False
-    if user.ability.lower() == "mold breaker":
+    if user.ability and user.ability.lower() == "mold breaker":
         mold_breaker = True
 
     # Item effects that alter damage
@@ -357,7 +366,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
         if user.status is not None:
             if user.ability.lower() == "guts":
                 multipliers["attack_multiplier"] *= 1.5
-            if move.id == move.retrieve_id("facade"):
+            if move.id == move.retrieve_id("Facade"):
                 multipliers["base_damage_multiplier"] *= 2
         if target.ability and target.ability.lower() == "multiscale" and target.current_hp_fraction == 1 \
                 and not mold_breaker:
@@ -397,14 +406,14 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
                 multipliers["final_damage_multiplier"] *= 1.5
         case Weather.SANDSTORM:
             if PokemonType.ROCK in target.types and move.category == MoveCategory.SPECIAL \
-                    and not move.id == Move.retrieve_id("psyshock"):
+                    and not move.id == Move.retrieve_id("Psyshock"):
                 multipliers["defense_multiplier"] *= 1.5
 
     # Critical hits - n/a
     # Random variance - n/a
     # STAB
     if move_type in user.types:
-        if user.ability.upper() == "ADAPTABILITY":
+        if user.ability and user.ability.upper() == "ADAPTABILITY":
             multipliers["final_damage_multiplier"] *= 2
         else:
             multipliers["final_damage_multiplier"] *= 1.5
@@ -421,8 +430,8 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
     multipliers["final_damage_multiplier"] *= eval_side_conditions(user, move, battle, opponent_prospective)
     '''
     # Aurora Veil, Reflect, Light Screen
-    if not move.id == move.retrieve_id("brick break") and not move.id == move.retrieve_id(
-            "psychic fangs") and not user.ability.upper() == "INFILTRATOR":
+    if not move.id == move.retrieve_id("Brick Break") and not move.id == move.retrieve_id(
+            "Psychic Fangs") and not user.ability.upper() == "INFILTRATOR":
         if battle.opponent_side_conditions.get(SideCondition.AURORA_VEIL):
             multipliers[
                 "final_damage_multiplier"] *= 2 / 3.0  # in double battles screens reduce damage by nearly 2/3
@@ -471,8 +480,8 @@ def eval_side_conditions(user: Pokemon, move: Move, battle: DoubleBattle, oppone
         side_conditions = battle.side_conditions
 
     # Aurora Veil, Reflect, Light Screen
-    if not move.id == move.retrieve_id("brick break") and not move.id == move.retrieve_id(
-            "psychic fangs") and not user.ability.upper() == "INFILTRATOR":
+    if not move.id == move.retrieve_id("Brick Break") and not move.id == move.retrieve_id(
+            "Psychic Fangs") and not (user.ability and user.ability.upper() == "INFILTRATOR"):
 
         if side_conditions.get(SideCondition.AURORA_VEIL):
             multiplier *= 2 / 3.0  # in double battles screens reduce damage by nearly 2/3
@@ -515,9 +524,10 @@ def rough_accuracy(move: Move, user: Pokemon, target: Pokemon):
         :return
     """
     # "Always hit" effects and "always hit" accuracy
-    if target.effects[Effect.MINIMIZE] and move.id == move.retrieve_id("heavy slam"):
+
+    if target.effects.get(Effect.MINIMIZE) and move.id == move.retrieve_id("Heavy Slam"):
         return 125
-    if target.effects[Effect.TELEKINESIS] > 0:
+    if target.effects.get(Effect.TELEKINESIS):
         return 125
 
     base_acc = move.accuracy
@@ -704,7 +714,7 @@ def get_opponent_max_damage_move(battle: DoubleBattle, my_mon: Pokemon, opponent
     return maxmove, maxdamage
 
 
-def move_can_ko(move, user, target, battle, opponent_prospective=False) -> bool:
+def move_can_ko(move: Move, user: Pokemon, target: Pokemon, battle: DoubleBattle, opponent_prospective=False) -> bool:
     """
     returns a boolean inidicating wheter the given move used by user can ko the target.
     :param move:
@@ -715,7 +725,7 @@ def move_can_ko(move, user, target, battle, opponent_prospective=False) -> bool:
     :return:
     """
     damage = calculate_percentage_damage(move, user, target, battle, opponent_prospective)
-    return damage >= target.current_hp_fraction
+    return damage >= target.current_hp_fraction*100
 
 
 def can_outspeed(battle: DoubleBattle, battler: Pokemon, target: Pokemon) -> bool:
