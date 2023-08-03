@@ -51,6 +51,7 @@ def multiple_targets(move: Move, battle: DoubleBattle, opponent_prospective=Fals
     returns true if the move hits multiple targets
         :param move:Move
         :param battle: DoubleBattle
+        :param opponent_prospective
         :return
     """
     target_data = move.target

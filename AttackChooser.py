@@ -176,7 +176,7 @@ def get_move_score(battle: DoubleBattle, move: Move, user: Pokemon, target: Poke
         score -= 10
         score = eval_status_move(move, user, target, score)
         # Account for accuracy of move
-        accuracy = pbRoughAccuracy(move, user, target, skill)
+        accuracy = MoveUtilities.rough_accuracy(move, user, target)
         score *= accuracy / 100.0
         if score <= 10:
             score = 0
@@ -212,7 +212,7 @@ def get_move_score_area(battle: DoubleBattle, move: Move, user: Pokemon):
             score -= 10
             score = eval_status_move(move, user, target, score)
             # Account for accuracy of move
-            accuracy = pbRoughAccuracy(move, user, target, skill)
+            accuracy = MoveUtilities.rough_accuracy(move, user, target)
             score *= accuracy / 100.0
             if score <= 10:
                 score = 0
@@ -245,10 +245,10 @@ def get_move_score_damage(score, move: Move, user, target, battle):
     if score <= 0:
         return 0
     # Calculate how much damage the move will do (roughly)
-    baseDmg = pbMoveBaseDamage(move, user, target, skill)
-    realDamage = pbRoughDamage(move, user, target, skill, baseDmg)
+    baseDmg = MoveUtilities.move_base_damage(move, user, target)
+    realDamage = MoveUtilities.rough_damage(move, user, target, baseDmg, battle)
     # Account for accuracy of move
-    accuracy = pbRoughAccuracy(move, user, target, skill)
+    accuracy = MoveUtilities.rough_accuracy(move, user, target)
     realDamage *= accuracy / 100.0
 
     # Convert damage to percentage of target's remaining HP
@@ -275,8 +275,7 @@ def use_protect(battle: DoubleBattle, idxBattler) -> BattleOrder | None:
             protect = move
             break
     if not has_protect or user.protect_counter > 0:
-        return None # can't protect for sure
-    do_protect = False
+        return None  # can't protect for sure
     damagers = 0
     for oppo in battle.opponent_active_pokemon:
         if MoveUtilities.can_damage(oppo, user):

@@ -13,9 +13,9 @@ from poke_env.environment import Move, Pokemon, DoubleBattle, Effect
 
 def should_withdraw(battle: DoubleBattle, idx_battler) -> BattleOrder | None:
     """
-    return the best switch if pokemon identified by idxBattler should switch, else return None
+    return the best switch if pokémon identified by idxBattler should switch, else return None
     :param battle:
-    :param idxBattler:
+    :param idx_battler:
     :return:
     """
 
@@ -23,7 +23,7 @@ def should_withdraw(battle: DoubleBattle, idx_battler) -> BattleOrder | None:
     ai_random.randint(0, 100)
     should_switch = False
 
-    battler = battle.active_pokemon[idxBattler]
+    battler = battle.active_pokemon[idx_battler]
     predictions = []
 
     # If foe's move can  be super-effective and powerful
@@ -36,22 +36,22 @@ def should_withdraw(battle: DoubleBattle, idx_battler) -> BattleOrder | None:
                 predicted_move.type) > 1:
             switch_chance = 0
             if predicted_damage >= 98:  # most certain ohko
-                switchChance = 80
+                switch_chance = 80
             elif predicted_damage > 70:  # does a lot of damage
-                switchChance = 30
-            should_switch = ai_random.randint(0, 100) < switchChance
+                switch_chance = 30
+            should_switch = ai_random.randint(0, 100) < switch_chance
 
     # Pokémon can't do anything
-    if battle.available_moves[idxBattler][0] == Move.retrieve_id("struggle"):
+    if battle.available_moves[idx_battler][0] == Move.retrieve_id("struggle"):
         should_switch = True
 
     # Pokémon is Encored into an unfavourable move
     if battler.effects.get(Effect.ENCORE) is not None:
-        move = battle.available_moves[idxBattler][0]
+        move = battle.available_moves[idx_battler][0]
         score_sum = 0
         score_count = 0
         for target in battle.opponent_active_pokemon:
-            score_sum += pbGetMoveScore(move, battler, target, skill)
+            score_sum += AttackChooser.get_move_score(battle, move, battler, target)
             score_count += 1
         if score_count > 0 and score_sum / score_count <= 20 and ai_random.randint(0, 100) < 80:
             should_switch = True
@@ -69,7 +69,7 @@ def should_withdraw(battle: DoubleBattle, idx_battler) -> BattleOrder | None:
 
     if should_switch:
         switch_order = []
-        for pkmn in battle.available_switches[idxBattler]:
+        for pkmn in battle.available_switches[idx_battler]:
             weight = 0
             for (target, move, damage) in predictions:
                 move_type = move.type
@@ -79,21 +79,21 @@ def should_withdraw(battle: DoubleBattle, idx_battler) -> BattleOrder | None:
                 if type_mod == 0:  # if switch immune
                     temp_weight = 65
                     if MoveUtilities.can_damage(pkmn, target):
-                        # Greater weight if new Pokemon's can hit effectively the target
+                        # Greater weight if new Pokémon's can hit effectively the target
                         temp_weight = 85
                 elif type_mod < 1:  # if switch resist
                     temp_weight = 40
                     if MoveUtilities.can_damage(pkmn, target):
-                        # Greater weight if new Pokemon's can hit effectively the target
+                        # Greater weight if new Pokémon's can hit effectively the target
                         temp_weight = 60
                 if temp_weight > weight:
                     weight = temp_weight
 
             if ai_random.randint(0, 100) < weight:
-                switch_order.insert(0, pkmn)  # Put this Pokemon first
+                switch_order.insert(0, pkmn)  # Put this Pokémon first
 
             else:
-                switch_order.append(pkmn)  # put this Pokemon last
+                switch_order.append(pkmn)  # put this Pokémon last
 
         if len(switch_order) > 0:
             return BattleOrder(switch_order[0])
