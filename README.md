@@ -74,7 +74,7 @@ New Team</br>
 Select Format gen8vgc2021</br>
 If you want to use the same team as the AI, paste the code in "base_team.txt" inside the textarea after pressing import/export.</br>
 </br>
-4. Run MainBattleStarter.py
+4. Run MainBattleStarter.py</br>
 ```sh
 python3 MainBattleStarter.py
 ```
