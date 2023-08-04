@@ -20,9 +20,9 @@ class DoublesMaxDamagePlayer(Player):
         # if forced to switch choose best switch
         forceSwitch = battle.force_switch
         if sum(forceSwitch) == 1:
-            print("only one to switch")
+            # print("only one to switch")
             best_switch = self.choose_best_switch(battle, 0)
-            print(best_switch.__repr__)
+            # print(best_switch.__repr__)
             return self.create_order(best_switch)
         opponents = battle.opponent_active_pokemon
         for (
@@ -40,10 +40,10 @@ class DoublesMaxDamagePlayer(Player):
                 if force_switch:
                     best_switch = self.choose_best_switch(battle, idx)
                     active_orders[idx] = BattleOrder(best_switch)
-                    print(mon.__str__())
+                    # print(mon.__str__())
                 else:
                     (move, target, damage) = BattleUtilities.get_max_damage_move(battle, mon, opponents, moves)
-                    print("move ", move, " target ", target, "predicted damage", damage)
+                    # print("move ", move, " target ", target, "predicted damage", damage)
                     active_orders[idx] = BattleOrder(move, move_target=target)
 
         # end for action

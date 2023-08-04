@@ -192,6 +192,9 @@ def get_move_score(battle: DoubleBattle, move: Move, user: Pokemon, target: Poke
 def get_move_score_area(battle: DoubleBattle, move: Move, user: Pokemon) -> int:
     base_score = 100
 
+    if move.id == Move.retrieve_id("Protect") or move.id == Move.retrieve_id("Detect"):
+        base_score = 20
+
     # Prefer damaging moves if AI has no more Pokémon
     if len(battle.available_switches[0]) == 0:
         if move.category.value == MoveCategory.STATUS:

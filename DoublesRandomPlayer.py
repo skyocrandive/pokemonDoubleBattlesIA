@@ -26,7 +26,7 @@ class DoubleRandomPlayer(Player):
             )
         ):
             if mon:
-                print("indice e ", idx)
+                # print("indice e ", idx)
                 targets = {}
                 for move in moves:
                     targetList = battle.get_possible_showdown_targets(move, mon)

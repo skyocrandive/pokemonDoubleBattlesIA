@@ -17,9 +17,9 @@ class DoublesSmartPlayer(Player):
         # if forced to switch choose best switch
         forceSwitch = battle.force_switch
         if sum(forceSwitch) == 1:
-            print("only one to switch")
+            # print("only one to switch")
             best_switch = choose_possible_best_switch(battle, 0)
-            print(best_switch.__repr__)
+            # print(best_switch.__repr__)
             return self.create_order(best_switch)
         opponents = battle.opponent_active_pokemon
         for (
@@ -35,7 +35,7 @@ class DoublesSmartPlayer(Player):
                 if force_switch:
                     best_switch = choose_possible_best_switch(battle, idx)
                     active_orders[idx] = BattleOrder(best_switch)
-                    print(mon.__str__())
+                    # print(mon.__str__())
                 else:
                     order = MoveHelper.default_choose_command(battle, idx)
                     active_orders[idx] = order
