@@ -14,6 +14,7 @@ class DoublesSmartPlayer(Player):
             return DefaultBattleOrder()
         # return self.choose_random_doubles_move(battle)
         active_orders = [[], []]
+        last_command = None
         # if forced to switch choose best switch
         forceSwitch = battle.force_switch
         if sum(forceSwitch) == 1:
@@ -37,7 +38,8 @@ class DoublesSmartPlayer(Player):
                     active_orders[idx] = BattleOrder(best_switch)
                     # print(mon.__str__())
                 else:
-                    order = MoveHelper.default_choose_command(battle, idx)
+                    order = MoveHelper.default_choose_command(battle, idx, last_command)
+                    last_command = order.order
                     active_orders[idx] = order
 
         # end for action

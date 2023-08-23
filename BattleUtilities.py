@@ -135,7 +135,7 @@ def get_max_damage_move(battle: DoubleBattle, my_pokemon: Pokemon, opponents: Li
     '''
     maxmove = None
     maxtarget = 0
-    maxdamage = 0
+    maxdamage = -1
     for move in moves:
         #print(move.__str__())
         moveTargets = battle.get_possible_showdown_targets(move, my_pokemon)

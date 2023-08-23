@@ -10,8 +10,7 @@ import MoveUtilities
 
 from poke_env.environment import Move, Pokemon, DoubleBattle, Effect
 
-
-def should_withdraw(battle: DoubleBattle, idx_battler) -> BattleOrder | None:
+def should_withdraw(battle: DoubleBattle, idx_battler, last_switch=None) -> BattleOrder | None:
     """
     return the best switch if pokémon identified by idxBattler should switch, else return None
     :param battle:
@@ -29,6 +28,8 @@ def should_withdraw(battle: DoubleBattle, idx_battler) -> BattleOrder | None:
     # If foe's move can  be super-effective and powerful
     for target in battle.opponent_active_pokemon:
         # predicted_move = Move
+        if target is None:
+            continue
         (predicted_move, predicted_damage) = MoveUtilities.get_opponent_max_damage_move(battle, battler, target)
         if predicted_damage > 0:
             predictions.append((target, predicted_move, predicted_damage))
@@ -98,6 +99,13 @@ def should_withdraw(battle: DoubleBattle, idx_battler) -> BattleOrder | None:
                 switch_order.append(pkmn)  # put this Pokémon last
 
         if len(switch_order) > 0:
+            switch = switch_order[0]
+            if last_switch is not None and switch == last_switch:
+                if len(switch_order) > 1:
+                    # last_switch = switch_order[1]
+                    return BattleOrder(last_switch)
+                else:
+                    return None
             return BattleOrder(switch_order[0])
     return None
 

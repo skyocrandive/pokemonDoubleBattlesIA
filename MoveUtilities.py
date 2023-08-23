@@ -596,7 +596,7 @@ def get_max_damage_move(battle: DoubleBattle, my_pokemon: Pokemon, opponents: Li
     """
     maxmove = None
     maxtarget = 0
-    maxdamage = 0
+    maxdamage = -1
     for move in moves:
         # print(move.__str__())
 
@@ -607,18 +607,31 @@ def get_max_damage_move(battle: DoubleBattle, my_pokemon: Pokemon, opponents: Li
         base_damage2 = move_base_damage(move, my_pokemon, opponents[1])
         damage2 = rough_damage(move, my_pokemon, opponents[1], base_damage2, battle)
         '''
-        damage1 = calculate_percentage_damage(move, my_pokemon, opponents[0], battle)
-        damage2 = calculate_percentage_damage(move, my_pokemon, opponents[1], battle)
-        if len(move_targets) == 1:  # status / spread move (moveTargets = [0])
-            damage = damage1 + damage2
-            target = move_targets[0]
-        else:  # can select target
-            if damage1 > damage2:
-                damage = damage1
-                target = 1
-            else:
-                damage = damage2
-                target = 2
+
+        if opponents[0] is None:
+            damage = calculate_percentage_damage(move, my_pokemon, opponents[1], battle)
+            target = 2
+            if len(move_targets) == 1:
+                target = move_targets[0]
+        elif opponents[1] is None:
+            damage = calculate_percentage_damage(move, my_pokemon, opponents[0], battle)
+            target = 1
+            if len(move_targets) == 1:
+                target = move_targets[0]
+        else:
+            damage1 = calculate_percentage_damage(move, my_pokemon, opponents[0], battle)
+            damage2 = calculate_percentage_damage(move, my_pokemon, opponents[1], battle)
+            if len(move_targets) == 1:  # status / spread move (moveTargets = [0])
+                damage = damage1 + damage2
+                target = move_targets[0]
+            else:  # can select target
+                if damage1 > damage2:
+                    damage = damage1
+                    target = 1
+                else:
+                    damage = damage2
+                    target = 2
+
         if damage > maxdamage:
             maxdamage = damage
             maxmove = move

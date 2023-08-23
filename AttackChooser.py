@@ -126,6 +126,8 @@ def register_move_trainer(battle: DoubleBattle, user: Pokemon, move: Move, outpu
         # If move affects one battler && you have to choose which one
         scoresAndTargets = []
         for idx, oppo in enumerate(battle.opponent_active_pokemon):
+            if oppo is None:
+                continue
             score = get_move_score(battle, move, user, oppo)
             if score > 0:
                 value = ScoreOrder(move, score, target=target_data[idx + 1])
@@ -205,6 +207,8 @@ def get_move_score_area(battle: DoubleBattle, move: Move, user: Pokemon) -> int:
 
     total_score = 0
     for target in battle.opponent_active_pokemon:
+        if target is None:
+            continue
         score = 0
         # Don't prefer moves that are ineffective because of abilities or effects
         if MoveUtilities.is_move_immune(move, user, target):
@@ -276,7 +280,7 @@ def use_protect(battle: DoubleBattle, idxBattler) -> BattleOrder | None:
     protect = None
     for move in battle.available_moves[idxBattler]:
         if move.id == Move.retrieve_id("Protect") or move.id == Move.retrieve_id("Detect"):
-            print("has protect")
+            # print("has protect")
             has_protect = True
             protect = move
             break
@@ -284,6 +288,8 @@ def use_protect(battle: DoubleBattle, idxBattler) -> BattleOrder | None:
         return None  # can't protect for sure
     damagers = 0
     for oppo in battle.opponent_active_pokemon:
+        if oppo is None:
+            continue
         if MoveUtilities.can_damage(oppo, user):
             damagers += 1
     base_probability = damagers * 30
