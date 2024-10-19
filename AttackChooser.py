@@ -331,6 +331,6 @@ def use_prio(battle: DoubleBattle, idxBattler) -> BattleOrder | None:
             noSelfTarg = [x for x in targets if x > 0]
             for idxtarget in noSelfTarg:
                 target = battle.opponent_active_pokemon[idxtarget-1]
-                if MoveUtilities.move_can_ko(move, user, target, battle):
+                if target is not None and MoveUtilities.move_can_ko(move, user, target, battle):
                     return BattleOrder(move, move_target=idxtarget)
     return None

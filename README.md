@@ -25,7 +25,6 @@ This project contains four AI players:
 
 ## Built With
 
-Android App developed with Android Studio and written entirely in Java.
 
 * [PyCharm](https://www.jetbrains.com/pycharm/)
 * [Python](https://www.python.org/)

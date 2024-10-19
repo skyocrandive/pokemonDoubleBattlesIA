@@ -82,6 +82,8 @@ def pokemon_type_advantage(user: Pokemon, target: Pokemon):
         :param target:Pokémon,
         :return
     """
+    if target is None or user is None:
+        return 1
     mod1 = target.damage_multiplier(user.type_1)
     mod2 = 1
     type2 = user.type_2
@@ -101,6 +103,8 @@ def is_move_immune(move: Move, user: Pokemon, target: Pokemon):
         :param target:Pokémon,
         :return
     """
+    if target is None:
+        return True
     move_type = move.type
     type_mod = target.damage_multiplier(move_type)
     if move.base_power > 0 and type_mod == 0:
@@ -299,7 +303,7 @@ def rough_damage(move: Move, user: Pokemon, target: Pokemon, base_dmg,
     :return:
     """
 
-    if is_move_immune(move, user, target):
+    if is_move_immune(move, user, target): # true also if target is None
         return 0
 
     # Fixed damage moves
@@ -524,6 +528,9 @@ def rough_accuracy(move: Move, user: Pokemon, target: Pokemon):
         :return
     """
     # "Always hit" effects and "always hit" accuracy
+
+    if target is None:
+        return 125
 
     if target.effects.get(Effect.MINIMIZE) and move.id == move.retrieve_id("Heavy Slam"):
         return 125
